@@ -10,7 +10,14 @@ import {
   ContactMessage,
   SiteStats,
   SiteSettings,
+  Certificate,
+  NewsletterSubscriber,
+  NewsletterBroadcast,
+  AttendanceRecord,
+  LearningResource,
+  AuditLog,
 } from '../types';
+
 
 const ADMIN_TOKEN_KEY = 'intelligenz_admin_token';
 const ADMIN_USER_KEY = 'intelligenz_admin_user';
@@ -668,4 +675,246 @@ export const api = {
   updateSettings: async (settings: Partial<SiteSettings>) => {
     return api.adminUpdateSettings(settings);
   },
+
+  // ==========================================
+  // NEWSLETTER (Public & Admin)
+  // ==========================================
+  subscribeNewsletter: async (data: { email: string; name?: string; department?: string; source?: string }): Promise<{ success: boolean; message: string; subscriber?: NewsletterSubscriber }> => {
+    const res = await fetch('/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to subscribe to newsletter');
+    return result;
+  },
+
+  adminGetNewsletterSubscribers: async (): Promise<NewsletterSubscriber[]> => {
+    const res = await fetch('/api/admin/newsletter/subscribers', { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to load subscribers');
+    return res.json();
+  },
+
+  adminDeleteNewsletterSubscriber: async (id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/admin/newsletter/subscribers/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to delete subscriber');
+    return res.json();
+  },
+
+  adminGetNewsletterBroadcasts: async (): Promise<NewsletterBroadcast[]> => {
+    const res = await fetch('/api/admin/newsletter/broadcasts', { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to load broadcasts');
+    return res.json();
+  },
+
+  adminSendNewsletterBroadcast: async (data: { subject: string; message: string; target?: string }): Promise<{ success: boolean; message: string; broadcast: NewsletterBroadcast }> => {
+    const res = await fetch('/api/admin/newsletter/broadcast', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to send broadcast');
+    return result;
+  },
+
+  // ==========================================
+  // CERTIFICATES (Public & Admin)
+  // ==========================================
+  getCertificates: async (q?: string): Promise<Certificate[]> => {
+    const url = q ? `/api/certificates?q=${encodeURIComponent(q)}` : '/api/certificates';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to load certificates');
+    return res.json();
+  },
+
+  verifyCertificate: async (code: string): Promise<{ valid: boolean; certificate?: Certificate; verification_time: string; verified_by: string; error?: string }> => {
+    const res = await fetch(`/api/certificates/verify/${encodeURIComponent(code)}`);
+    const result = await res.json();
+    if (!res.ok && !result.error) throw new Error('Failed to verify certificate');
+    return result;
+  },
+
+  adminGetCertificates: async (): Promise<Certificate[]> => {
+    const res = await fetch('/api/admin/certificates', { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to load certificates');
+    return res.json();
+  },
+
+  adminCreateCertificate: async (data: Partial<Certificate>): Promise<Certificate> => {
+    const res = await fetch('/api/admin/certificates', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to create certificate');
+    return result;
+  },
+
+  adminBatchCreateCertificates: async (data: {
+    event_id?: string;
+    event_title: string;
+    certificate_type: string;
+    issue_date: string;
+    issued_by?: string;
+    designation?: string;
+    students: Array<{ student_name: string; student_roll_no: string; student_email: string; department?: string; notes?: string }>;
+  }): Promise<{ success: boolean; message: string; certificates: Certificate[] }> => {
+    const res = await fetch('/api/admin/certificates/batch', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to batch generate certificates');
+    return result;
+  },
+
+  adminUpdateCertificate: async (id: string, data: Partial<Certificate>): Promise<Certificate> => {
+    const res = await fetch(`/api/admin/certificates/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to update certificate');
+    return result;
+  },
+
+  adminDeleteCertificate: async (id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/admin/certificates/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to delete certificate');
+    return res.json();
+  },
+
+  // ==========================================
+  // ATTENDANCE & CHECK-IN (Admin)
+  // ==========================================
+  adminGetCheckins: async (eventId?: string): Promise<AttendanceRecord[]> => {
+    const url = eventId ? `/api/admin/checkins?event_id=${encodeURIComponent(eventId)}` : '/api/admin/checkins';
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to load check-ins');
+    return res.json();
+  },
+
+  adminCheckinParticipant: async (data: {
+    code?: string;
+    event_id?: string;
+    registration_id?: string;
+    roll_number?: string;
+    email?: string;
+    method?: string;
+  }): Promise<{ success: boolean; message: string; record: AttendanceRecord }> => {
+    const res = await fetch('/api/admin/checkin', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Check-in failed');
+    return result;
+  },
+
+  adminDeleteCheckin: async (id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/admin/checkins/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to delete check-in record');
+    return res.json();
+  },
+
+  // ==========================================
+  // LEARNING RESOURCES (Public & Admin)
+  // ==========================================
+  getResources: async (category?: string): Promise<LearningResource[]> => {
+    const url = category && category !== 'All' ? `/api/resources?category=${encodeURIComponent(category)}` : '/api/resources';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to load resources');
+    return res.json();
+  },
+
+  adminCreateResource: async (data: Partial<LearningResource>): Promise<LearningResource> => {
+    const res = await fetch('/api/admin/resources', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to create resource');
+    return result;
+  },
+
+  adminUpdateResource: async (id: string, data: Partial<LearningResource>): Promise<LearningResource> => {
+    const res = await fetch(`/api/admin/resources/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to update resource');
+    return result;
+  },
+
+  adminDeleteResource: async (id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/admin/resources/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to delete resource');
+    return res.json();
+  },
+
+  // ==========================================
+  // GEMINI AI ASSISTANT (Public)
+  // ==========================================
+  sendAIChat: async (message: string): Promise<{ reply: string }> => {
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to communicate with AI Assistant');
+    return result;
+  },
+
+  // ==========================================
+  // AUDIT LOGS & DATABASE BACKUPS (Admin)
+  // ==========================================
+  adminGetAuditLogs: async (): Promise<AuditLog[]> => {
+    const res = await fetch('/api/admin/audit-logs', {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to load audit logs');
+    return res.json();
+  },
+
+  adminExportBackup: async (): Promise<any> => {
+    const res = await fetch('/api/admin/backup/export', {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to export database backup');
+    return res.json();
+  },
+
+  adminRestoreBackup: async (data: any): Promise<{ success: boolean; message: string }> => {
+    const res = await fetch('/api/admin/backup/restore', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to restore database');
+    return result;
+  },
 };
+

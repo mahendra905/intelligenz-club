@@ -36,6 +36,9 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
+  Award,
+  QrCode,
+  BookOpen,
 } from 'lucide-react';
 
 // Subcomponents
@@ -53,6 +56,10 @@ import { AdminStatsTab } from '../components/admin/AdminStatsTab';
 import { AdminSettingsTab } from '../components/admin/AdminSettingsTab';
 import { AdminProfileTab } from '../components/admin/AdminProfileTab';
 import { AdminSqlTab } from '../components/admin/AdminSqlTab';
+import { AdminCertificatesTab } from '../components/admin/AdminCertificatesTab';
+import { AdminAttendanceTab } from '../components/admin/AdminAttendanceTab';
+import { AdminNewsletterTab } from '../components/admin/AdminNewsletterTab';
+import { AdminResourcesTab } from '../components/admin/AdminResourcesTab';
 
 interface AdminDashboardPageProps {
   onLogout: () => void;
@@ -64,6 +71,10 @@ export type AdminTab =
   | 'overview'
   | 'events'
   | 'announcements'
+  | 'certificates'
+  | 'attendance'
+  | 'newsletter'
+  | 'resources'
   | 'projects'
   | 'team'
   | 'achievements'
@@ -462,6 +473,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'events', label: 'Events & Workshops', icon: Calendar, count: events.length },
     { id: 'announcements', label: 'Announcements', icon: Bell, count: announcements.length },
+    { id: 'certificates', label: 'Certificates & Credentials', icon: Award },
+    { id: 'attendance', label: 'QR Attendance & Check-In', icon: QrCode },
+    { id: 'newsletter', label: 'Newsletter & Broadcasts', icon: Mail },
+    { id: 'resources', label: 'Learning Resources', icon: BookOpen },
     { id: 'projects', label: 'AI Projects', icon: Code2, count: projects.length },
     { id: 'team', label: 'Core Team & Faculty', icon: Users, count: team.length },
     { id: 'achievements', label: 'Achievements', icon: Trophy, count: achievements.length },
@@ -724,6 +739,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             onSaveAnnouncement={handleSaveAnnouncement}
             onDeleteAnnouncement={handleDeleteAnnouncement}
           />
+        )}
+
+        {activeTab === 'certificates' && (
+          <AdminCertificatesTab onRefreshData={handleManualRefresh} />
+        )}
+
+        {activeTab === 'attendance' && (
+          <AdminAttendanceTab onRefreshData={handleManualRefresh} />
+        )}
+
+        {activeTab === 'newsletter' && (
+          <AdminNewsletterTab onRefreshData={handleManualRefresh} />
+        )}
+
+        {activeTab === 'resources' && (
+          <AdminResourcesTab onRefreshData={handleManualRefresh} />
         )}
 
         {activeTab === 'projects' && (

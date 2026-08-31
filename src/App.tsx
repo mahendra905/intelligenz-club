@@ -17,8 +17,11 @@ import { GalleryPage } from './pages/GalleryPage';
 import { AboutPage } from './pages/AboutPage';
 import { JoinPage } from './pages/JoinPage';
 import { ContactPage } from './pages/ContactPage';
+import { CertificatesPage } from './pages/CertificatesPage';
+import { ResourcesPage } from './pages/ResourcesPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AIChatModal } from './components/AIChatModal';
 
 // API & Types
 import { api } from './lib/api';
@@ -32,7 +35,7 @@ import {
   SiteStats,
   SiteSettings,
 } from './types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot, Sparkles } from 'lucide-react';
 
 export default function App() {
   // Navigation Path
@@ -53,6 +56,7 @@ export default function App() {
 
   // Modals
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [registeringEvent, setRegisteringEvent] = useState<Event | null>(null);
 
   // Selected Detail views
@@ -227,6 +231,12 @@ export default function App() {
         );
       case '/team':
         return <TeamPage team={team} onNavigate={navigate} />;
+      case '/certificates':
+      case '/verify':
+        return <CertificatesPage onNavigate={navigate} />;
+      case '/resources':
+      case '/learn':
+        return <ResourcesPage onNavigate={navigate} />;
       case '/achievements':
         return <AchievementsPage achievements={achievements} onNavigate={navigate} />;
       case '/gallery':
@@ -287,6 +297,27 @@ export default function App() {
       {!isAdminRoute && (
         <Footer onNavigate={navigate} settings={settings} />
       )}
+
+      {/* Floating AI Mentor Button */}
+      <button
+        onClick={() => setIsAIChatOpen(true)}
+        className="fixed bottom-5 right-5 z-40 group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-cyan-500 via-teal-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs rounded-full shadow-xl shadow-cyan-500/25 hover:shadow-cyan-400/40 transition-all hover:scale-105 active:scale-95 border border-cyan-300/40"
+        title="Ask IntelliBot AI Mentor"
+      >
+        <div className="relative">
+          <Bot className="w-5 h-5" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+        </div>
+        <span className="tracking-wider uppercase font-mono font-bold hidden sm:inline">Ask IntelliBot</span>
+      </button>
+
+      {/* AI Chat Modal Dialog */}
+      <AIChatModal
+        isOpen={isAIChatOpen}
+        onClose={() => setIsAIChatOpen(false)}
+        onNavigate={navigate}
+      />
 
       {/* Global Search Dialog */}
       <SearchModal

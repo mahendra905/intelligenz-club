@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IntelligenzLogo } from './IntelligenzLogo';
 import {
   Mail,
@@ -9,8 +9,13 @@ import {
   Shield,
   Heart,
   Globe,
+  Award,
+  BookOpen,
+  Send,
+  CheckCircle2,
 } from 'lucide-react';
 import { SiteSettings } from '../types';
+import { api } from '../lib/api';
 
 interface FooterProps {
   onNavigate: (path: string) => void;
@@ -19,10 +24,33 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
   const currentYear = new Date().getFullYear();
+  const [subEmail, setSubEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subStatus, setSubStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleNav = (path: string) => {
     onNavigate(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subEmail.trim()) return;
+    setSubscribing(true);
+    setSubStatus(null);
+    try {
+      const res = await api.subscribeNewsletter({
+        email: subEmail.trim(),
+        name: 'Student Subscriber',
+        department: 'CSE (AIML)',
+      });
+      setSubStatus({ type: 'success', message: res.message || 'Subscribed successfully!' });
+      setSubEmail('');
+    } catch (err: any) {
+      setSubStatus({ type: 'error', message: err.message || 'Failed to subscribe' });
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   return (
@@ -66,6 +94,43 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
               {settings?.supporting_text ||
                 'Where curiosity meets code, intelligence meets innovation, and students build the future.'}
             </p>
+
+            {/* Newsletter Subscription Bar */}
+            <div className="pt-2">
+              <form onSubmit={handleNewsletterSubmit} className="space-y-2">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+                  Subscribe to Club Bulletins & Hackathons
+                </label>
+                <div className="flex items-center gap-1.5 max-w-sm">
+                  <input
+                    type="email"
+                    required
+                    value={subEmail}
+                    onChange={(e) => setSubEmail(e.target.value)}
+                    placeholder="Enter college email..."
+                    className="flex-1 bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={subscribing || !subEmail.trim()}
+                    className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold rounded-lg text-xs transition-all flex items-center gap-1 shadow-sm"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>Join</span>
+                  </button>
+                </div>
+                {subStatus && (
+                  <p
+                    className={`text-[11px] font-medium flex items-center gap-1 ${
+                      subStatus.type === 'success' ? 'text-emerald-400' : 'text-red-400'
+                    }`}
+                  >
+                    {subStatus.type === 'success' && <CheckCircle2 className="w-3 h-3" />}
+                    {subStatus.message}
+                  </p>
+                )}
+              </form>
+            </div>
 
             {/* Social / Direct Channels */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -118,6 +183,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
               <li>
                 <button onClick={() => handleNav('/announcements')} className="hover:text-[#00E5FF] transition-colors">
                   Announcements
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNav('/certificates')} className="hover:text-[#00E5FF] transition-colors flex items-center gap-1">
+                  <Award className="w-3 h-3 text-cyan-400" />
+                  <span>Verify Certificates</span>
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNav('/resources')} className="hover:text-[#00E5FF] transition-colors flex items-center gap-1">
+                  <BookOpen className="w-3 h-3 text-cyan-400" />
+                  <span>AI Learning Hub</span>
                 </button>
               </li>
               <li>

@@ -32,7 +32,9 @@ export interface Event {
   description: string;
   short_description: string;
   event_image: string;
+  banner_image?: string;
   date: string;
+  time?: string;
   start_time: string;
   end_time: string;
   venue: string;
@@ -80,6 +82,8 @@ export interface Announcement {
   author: string;
   author_role: string;
   published_at: string;
+  published_date?: string;
+  pinned?: boolean;
   featured: boolean;
   tags?: string[];
   created_at: string;
@@ -120,6 +124,7 @@ export interface EventRegistration {
   participant_name?: string;
   email: string;
   phone?: string;
+  college?: string;
   department: string;
   year: string;
   roll_number: string;
@@ -144,14 +149,26 @@ export interface TeamMember {
   id: string;
   name: string;
   position: string;
-  category: TeamCategory;
+  role?: string;
+  category: TeamCategory | string;
+  department?: string;
+  year?: string;
   bio: string;
   photo_url: string;
+  image_url?: string;
   linkedin?: string;
   github?: string;
   email?: string;
+  social_links?: {
+    linkedin?: string;
+    github?: string;
+    twitter?: string;
+    email?: string;
+    [key: string]: any;
+  };
   featured: boolean;
   order: number;
+  order_index?: number;
 }
 
 export type ProjectCategory =
@@ -199,6 +216,7 @@ export interface Achievement {
   image_url?: string;
   featured: boolean;
   proof_link?: string;
+  proof_url?: string;
 }
 
 export interface GalleryImage {
@@ -216,6 +234,7 @@ export interface ContactMessage {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   message: string;
   is_read: boolean;
@@ -272,3 +291,101 @@ export interface AdminUser {
   email: string;
   role: 'super_admin' | 'editor';
 }
+
+export type CertificateType =
+  | 'Participation'
+  | 'Merit'
+  | 'Appreciation'
+  | 'Club Membership'
+  | 'Hackathon Winner'
+  | 'Workshop Completion'
+  | 'Winner'
+  | 'Runner-up'
+  | 'Speaker'
+  | 'Coordinator'
+  | string;
+
+export interface Certificate {
+  id: string;
+  certificate_code: string;
+  student_name: string;
+  student_email: string;
+  student_roll_no: string;
+  department: string;
+  college_name: string;
+  event_id?: string;
+  event_title: string;
+  certificate_type: CertificateType;
+  issue_date: string;
+  issued_by: string;
+  designation: string;
+  is_valid: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  name?: string;
+  department?: string;
+  subscribed_at: string;
+  status: 'Active' | 'Unsubscribed';
+  source?: string;
+}
+
+export interface NewsletterBroadcast {
+  id: string;
+  subject: string;
+  message: string;
+  target: 'All Subscribers' | 'Active Members' | 'Workshop Attendees';
+  sent_at: string;
+  recipient_count: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  registration_id: string;
+  event_id: string;
+  event_title: string;
+  participant_name: string;
+  roll_number: string;
+  email: string;
+  department: string;
+  checked_in_at: string;
+  checkin_method: 'QR Code' | 'Code Entry' | 'Manual';
+}
+
+export interface LearningResource {
+  id: string;
+  title: string;
+  slug?: string;
+  category: 'Roadmaps' | 'AI Models & LLMs' | 'Computer Vision' | 'Prompt Engineering' | 'Python & Data Science' | 'Cloud & MLOps' | string;
+  description: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced' | string;
+  duration?: string;
+  url?: string;
+  link_url?: string;
+  format?: string;
+  tags: string[];
+  modules?: {
+    title: string;
+    description: string;
+    resources: { title: string; url: string; type: 'doc' | 'video' | 'colab' | 'github' }[];
+  }[];
+  featured: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id?: string;
+  admin_email: string;
+  details: string;
+  timestamp: string;
+  ip_address?: string;
+}
+

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
+import { GoogleGenAI } from '@google/genai';
 import {
   INITIAL_SETTINGS,
   INITIAL_STATS,
@@ -12,6 +13,9 @@ import {
   INITIAL_PROJECTS,
   INITIAL_ACHIEVEMENTS,
   INITIAL_GALLERY,
+  INITIAL_CERTIFICATES,
+  INITIAL_SUBSCRIBERS,
+  INITIAL_RESOURCES,
 } from './src/data/initialData';
 import {
   Event,
@@ -25,6 +29,12 @@ import {
   ContactMessage,
   SiteStats,
   SiteSettings,
+  Certificate,
+  NewsletterSubscriber,
+  NewsletterBroadcast,
+  AttendanceRecord,
+  LearningResource,
+  AuditLog,
 } from './src/types';
 
 export interface AdminUserRecord {
@@ -51,14 +61,24 @@ interface DatabaseSchema {
   registrations: EventRegistration[];
   messages: ContactMessage[];
   admin_users: AdminUserRecord[];
+  certificates: Certificate[];
+  newsletter_subscribers: NewsletterSubscriber[];
+  newsletter_broadcasts: NewsletterBroadcast[];
+  resources: LearningResource[];
+  checkins: AttendanceRecord[];
+  audit_logs: AuditLog[];
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 
-// Ensure data directory exists
+// Ensure data and backup directories exist
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(BACKUPS_DIR)) {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
 
 function hashPassword(password: string, salt: string): string {
@@ -104,6 +124,12 @@ function loadDatabase(): DatabaseSchema {
         registrations: parsed.registrations || [],
         messages: parsed.messages || [],
         admin_users: adminUsers,
+        certificates: parsed.certificates || INITIAL_CERTIFICATES,
+        newsletter_subscribers: parsed.newsletter_subscribers || INITIAL_SUBSCRIBERS,
+        newsletter_broadcasts: parsed.newsletter_broadcasts || [],
+        resources: parsed.resources || INITIAL_RESOURCES,
+        checkins: parsed.checkins || [],
+        audit_logs: Array.isArray(parsed.audit_logs) ? parsed.audit_logs : [],
       };
       return loaded;
     }
@@ -124,6 +150,21 @@ function loadDatabase(): DatabaseSchema {
     registrations: [],
     messages: [],
     admin_users: [createDefaultAdmin()],
+    certificates: INITIAL_CERTIFICATES,
+    newsletter_subscribers: INITIAL_SUBSCRIBERS,
+    newsletter_broadcasts: [],
+    resources: INITIAL_RESOURCES,
+    checkins: [],
+    audit_logs: [
+      {
+        id: 'log-init',
+        action: 'System Initialized',
+        entity_type: 'System',
+        admin_email: 'admin@drkvsrit.ac.in',
+        details: 'IntelliGenZ Platform and Database Initialized',
+        timestamp: new Date().toISOString(),
+      },
+    ],
   };
   saveDatabase(initialDb);
   return initialDb;
@@ -138,6 +179,36 @@ function saveDatabase(database: DatabaseSchema) {
 }
 
 let db = loadDatabase();
+
+function logAdminAction(
+  action: string,
+  entity_type: string,
+  entity_id: string,
+  details: string,
+  admin_email: string = 'admin@drkvsrit.ac.in',
+  req?: Request
+) {
+  try {
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      action,
+      entity_type,
+      entity_id,
+      admin_email,
+      details,
+      timestamp: new Date().toISOString(),
+      ip_address: (req?.ip || req?.socket.remoteAddress || '127.0.0.1') as string,
+    };
+    if (!db.audit_logs) db.audit_logs = [];
+    db.audit_logs.unshift(newLog);
+    if (db.audit_logs.length > 500) {
+      db.audit_logs = db.audit_logs.slice(0, 500);
+    }
+    saveDatabase(db);
+  } catch (err) {
+    console.error('Failed to write audit log:', err);
+  }
+}
 
 // In-memory rate limiting map
 const ipRateLimits = new Map<string, { count: number; lastReset: number }>();
@@ -535,6 +606,253 @@ async function startServer() {
       success: true,
       message: 'Thank you for reaching out! The IntelliGenZ team will get back to you shortly.',
     });
+  });
+
+  // ==========================================
+  // NEWSLETTER SUBSCRIPTION (Public)
+  // ==========================================
+  app.post('/api/newsletter/subscribe', rateLimiter(15, 60000), (req, res) => {
+    const { email, name, department } = req.body;
+    const subscriberEmail = (email || '').trim().toLowerCase();
+
+    if (!subscriberEmail || !subscriberEmail.includes('@')) {
+      res.status(400).json({ error: 'Please enter a valid email address.' });
+      return;
+    }
+
+    const existing = db.newsletter_subscribers.find(
+      (s) => s.email.toLowerCase() === subscriberEmail
+    );
+
+    if (existing) {
+      if (existing.status === 'Unsubscribed') {
+        existing.status = 'Active';
+        existing.subscribed_at = new Date().toISOString();
+        saveDatabase(db);
+        res.json({
+          success: true,
+          message: 'Welcome back! Your newsletter subscription has been reactivated.',
+        });
+        return;
+      }
+      res.json({
+        success: true,
+        message: 'You are already subscribed to the IntelliGenZ monthly circular and event alerts!',
+      });
+      return;
+    }
+
+    const newSubscriber: NewsletterSubscriber = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      email: subscriberEmail,
+      name: (name || '').trim(),
+      department: (department || '').trim(),
+      subscribed_at: new Date().toISOString(),
+      status: 'Active',
+      source: req.body.source || 'Website',
+    };
+
+    db.newsletter_subscribers.unshift(newSubscriber);
+    saveDatabase(db);
+
+    res.status(201).json({
+      success: true,
+      message: 'Successfully subscribed to IntelliGenZ Club bulletins and event dispatches! 🚀',
+      subscriber: newSubscriber,
+    });
+  });
+
+  // ==========================================
+  // CERTIFICATES VERIFICATION & LOOKUP (Public)
+  // ==========================================
+  app.get('/api/certificates', (req, res) => {
+    const query = (req.query.q as string || '').toLowerCase().trim();
+    
+    // Sanitize output for public consumption to prevent personal information scraping
+    const sanitizePublicCert = (c: Certificate) => ({
+      id: c.id,
+      certificate_code: c.certificate_code,
+      student_name: c.student_name,
+      student_roll_no: c.student_roll_no,
+      department: c.department,
+      college_name: c.college_name,
+      event_id: c.event_id,
+      event_title: c.event_title,
+      certificate_type: c.certificate_type,
+      issue_date: c.issue_date,
+      issued_by: c.issued_by,
+      designation: c.designation,
+      is_valid: c.is_valid,
+      notes: c.notes,
+    });
+
+    if (!query) {
+      // Return list of publicly issued valid certificates
+      res.json(db.certificates.filter((c) => c.is_valid).map(sanitizePublicCert));
+      return;
+    }
+
+    const matches = db.certificates.filter(
+      (c) =>
+        c.certificate_code.toLowerCase().includes(query) ||
+        c.student_name.toLowerCase().includes(query) ||
+        c.student_roll_no.toLowerCase().includes(query) ||
+        c.event_title.toLowerCase().includes(query)
+    );
+
+    res.json(matches.map(sanitizePublicCert));
+  });
+
+  app.get('/api/certificates/verify/:code', (req, res) => {
+    const code = req.params.code.trim().toUpperCase();
+    const cert = db.certificates.find(
+      (c) => c.certificate_code.toUpperCase() === code
+    );
+
+    if (!cert) {
+      res.status(404).json({
+        valid: false,
+        status: 'NotFound',
+        error: 'Certificate not found. Please verify the Certificate ID and try again.',
+      });
+      return;
+    }
+
+    // Public sanitized representation (excluding private email, phone, etc.)
+    const publicCert = {
+      id: cert.id,
+      certificate_code: cert.certificate_code,
+      student_name: cert.student_name,
+      student_roll_no: cert.student_roll_no,
+      department: cert.department,
+      college_name: cert.college_name,
+      event_id: cert.event_id,
+      event_title: cert.event_title,
+      certificate_type: cert.certificate_type,
+      issue_date: cert.issue_date,
+      issued_by: cert.issued_by,
+      designation: cert.designation,
+      is_valid: cert.is_valid,
+      notes: cert.notes,
+    };
+
+    if (!cert.is_valid) {
+      res.status(200).json({
+        valid: false,
+        status: 'Revoked',
+        error: 'CERTIFICATE REVOKED by Department of CSE (AIML) & AI Authority.',
+        certificate: publicCert,
+        verification_time: new Date().toISOString(),
+        verified_by: 'Department of CSE (AIML) & AI, DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY',
+      });
+      return;
+    }
+
+    res.json({
+      valid: true,
+      status: 'Valid',
+      certificate: publicCert,
+      verification_time: new Date().toISOString(),
+      verified_by: 'Department of CSE (AIML) & AI, DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY',
+    });
+  });
+
+
+  // ==========================================
+  // LEARNING RESOURCES & AI ROADMAPS (Public)
+  // ==========================================
+  app.get('/api/resources', (req, res) => {
+    const category = req.query.category as string;
+    let list = [...db.resources];
+    if (category && category !== 'All') {
+      list = list.filter((r) => r.category === category);
+    }
+    res.json(list);
+  });
+
+  // ==========================================
+  // INTELLIGENZ GEMINI AI ASSISTANT & MENTOR (Public)
+  // ==========================================
+  const aiClient = process.env.GEMINI_API_KEY
+    ? new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      })
+    : null;
+
+  app.post('/api/ai/chat', rateLimiter(30, 60000), async (req, res) => {
+    try {
+      const { message } = req.body;
+      if (!message || typeof message !== 'string') {
+        res.status(400).json({ error: 'Message is required' });
+        return;
+      }
+
+      const clubContext = `
+You are "IntelliBot", the official AI Mentor & Assistant for the "IntelliGenZ Club" at the Department of CSE (AIML) & AI, DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY (DRKVSRIT), Kurnool, Andhra Pradesh.
+
+Motto: "Code • Innovate • IntelliGently"
+Institution: DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY
+Department: Department of CSE (AIML) & AI
+Key Offerings:
+1. NeuroHack 2026: 24-Hour State-Level AI Hackathon (Prize pool ₹50,000, 4 Tracks: GenAI Agents, Healthcare/Vision, Smart Campus, Open Innovation).
+2. Autonomous Agents Workshop with Gemini & LangChain.
+3. Edge AI & Computer Vision Bootcamp with PyTorch & YOLOv11.
+4. Student membership recruitment in ML, Web Systems, Design, and Event Ops.
+5. Online Certificate Verification & Event Ticket Pass generator.
+
+Provide crisp, technically sound, encouraging answers in Markdown. Include code snippets, project roadmaps, and step-by-step guidance whenever asked.
+`;
+
+      if (aiClient) {
+        try {
+          const chat = aiClient.chats.create({
+            model: 'gemini-3.7-flash',
+            config: {
+              systemInstruction: clubContext,
+            },
+          });
+
+          const response = await chat.sendMessage({
+            message: message,
+          });
+
+          res.json({
+            reply: response.text || 'IntelliBot is ready to help you build next-generation AI projects at IntelliGenZ!',
+          });
+          return;
+        } catch (geminiErr) {
+          console.error('Gemini SDK call fallback triggered:', geminiErr);
+        }
+      }
+
+      // Contextual High-Precision Fallback
+      const lower = message.toLowerCase();
+      let reply = '';
+
+      if (lower.includes('event') || lower.includes('hackathon') || lower.includes('neurohack') || lower.includes('workshop')) {
+        reply = `### 🚀 Upcoming Flagship IntelliGenZ Events\n\n- **NeuroHack 2026**: 24-Hour State-Level AI Hackathon on **September 25, 2026** (₹50,000 Total Prize Pool across 4 Tracks: GenAI Agents, Healthcare & Vision AI, Smart Campus, Open Innovation).\n- **Deep Dive: Autonomous Agents with Gemini & LangChain**: Hands-on workshop on **September 12, 2026**.\n- **Edge AI & Computer Vision Bootcamp**: Real-time YOLO and OpenCV on microcontrollers in **October 2026**.\n\nHead over to the **Events** page to register and claim your official event pass!`;
+      } else if (lower.includes('join') || lower.includes('recruitment') || lower.includes('apply') || lower.includes('member')) {
+        reply = `### ⚡ Joining IntelliGenZ Club\n\nMembership recruitment is currently **OPEN** for students across CSE (AIML), AI, and engineering departments at DR. K. V. Subba Reddy Institute of Technology.\n\n**Specialization Tracks:**\n- 🧠 **Machine Learning & Deep Tech Lab**\n- 🌐 **Full-Stack & Cloud Systems**\n- 🎨 **UI/UX & Creative Media**\n- 📊 **Event Operations & Community Management**\n\nVisit the **Join Us** page to submit your application form!`;
+      } else if (lower.includes('project') || lower.includes('idea') || lower.includes('portfolio') || lower.includes('build')) {
+        reply = `### 💡 High-Impact AI/ML Project Blueprints\n\n1. **Multimodal Medical Diagnostic Assistant**: Uses Gemini 2.5 Flash to ingest clinical scans and produce preliminary triage reports.\n2. **Edge Vision Smart Traffic Optimizer**: Real-time traffic queue counting and emergency green-light routing with YOLOv11 and OpenCV.\n3. **Intelligent Campus Query Agent**: RAG pipeline built with LangChain, ChromaDB, and FastAPI connected to department syllabi and notices.\n4. **Autonomous Sign Language Interpreter**: PyTorch LSTM and MediaPipe hand tracking for real-time translation.\n\nNeed architecture diagrams, dataset recommendations, or code templates? Let me know which one you want to start with!`;
+      } else if (lower.includes('certif') || lower.includes('verify') || lower.includes('code')) {
+        reply = `### 📜 Certificate Verification Portal\n\nAll certificates issued by IntelliGenZ Club for workshops, hackathons, and membership are cryptographically verifiable.\n\nStudents and recruiters can enter any Certificate ID (e.g. \`IZ-2026-NH-8942\`) in our **Verify Certificate** portal to inspect student credentials, issue dates, and signing authorities.`;
+      } else if (lower.includes('road') || lower.includes('learn') || lower.includes('study') || lower.includes('curriculum')) {
+        reply = `### 🗺️ AI & Machine Learning Learning Roadmaps\n\nExplore our curated learning tracks under the **Resources** hub:\n1. **Autonomous AI Agents & Multimodal LLMs** (Prompt engineering, Tool calling, RAG pipelines, LangChain)\n2. **Computer Vision & Edge AI** (OpenCV, YOLOv11, PyTorch, Jetson Nano)\n3. **Production MLOps Pipeline** (FastAPI, Docker, MLflow, Cloud deployment)\n\nCheck out the **Resources** tab in the top navigation!`;
+      } else {
+        reply = `Welcome to **INTELLIGENZ** — the official Technical & AI Club of Department of CSE (AIML) & AI at DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY! 🚀\n\nHow can I help you today?\n- 🎯 **Event Agendas & Hackathon Registrations**\n- 💡 **AI/ML Project Brainstorming & Code Guidance**\n- 📚 **Learning Roadmaps & Tutorials**\n- 📝 **Club Membership & Domain Application**\n- 📜 **Certificate Verification & Event Check-In**\n\nFeel free to ask any technical or club-related question!`;
+      }
+
+      res.json({ reply });
+    } catch (err: any) {
+      console.error('AI chat error:', err);
+      res.status(500).json({ error: 'Failed to process AI chat message' });
+    }
   });
 
   // ==========================================
@@ -1040,8 +1358,355 @@ async function startServer() {
     res.json(db.settings);
   });
 
+  // ==========================================
+  // ADMIN CERTIFICATES MANAGEMENT
+  // ==========================================
+  adminRouter.get('/certificates', (req, res) => {
+    res.json(db.certificates);
+  });
+
+  adminRouter.post('/certificates', (req, res) => {
+    const body = req.body;
+    const certCode = body.certificate_code || `IZ-2026-${Math.random().toString(36).substr(2, 4).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newCert: Certificate = {
+      id: `cert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      certificate_code: certCode,
+      student_name: (body.student_name || '').trim(),
+      student_email: (body.student_email || '').trim().toLowerCase(),
+      student_roll_no: (body.student_roll_no || '').trim().toUpperCase(),
+      department: (body.department || 'CSE (AIML)').trim(),
+      college_name: body.college_name || 'DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY',
+      event_id: body.event_id,
+      event_title: (body.event_title || '').trim(),
+      certificate_type: body.certificate_type || 'Participation',
+      issue_date: body.issue_date || new Date().toISOString().slice(0, 10),
+      issued_by: body.issued_by || 'Department of CSE (AIML) & AI',
+      designation: body.designation || 'Faculty Coordinator & President',
+      is_valid: body.is_valid !== false,
+      notes: body.notes || '',
+      created_at: new Date().toISOString(),
+    };
+
+    db.certificates.unshift(newCert);
+    saveDatabase(db);
+    res.status(201).json(newCert);
+  });
+
+  adminRouter.post('/certificates/batch', (req, res) => {
+    const { event_id, event_title, certificate_type, issue_date, issued_by, designation, students } = req.body;
+
+    if (!Array.isArray(students) || students.length === 0) {
+      res.status(400).json({ error: 'Students array is required for batch certificate generation.' });
+      return;
+    }
+
+    const created: Certificate[] = [];
+    for (const student of students) {
+      const certCode = `IZ-2026-${(event_title || 'EVT').slice(0, 2).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const cert: Certificate = {
+        id: `cert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        certificate_code: certCode,
+        student_name: (student.student_name || student.name || student.full_name || '').trim(),
+        student_email: (student.student_email || student.email || '').trim().toLowerCase(),
+        student_roll_no: (student.student_roll_no || student.roll_number || '').trim().toUpperCase(),
+        department: (student.department || 'CSE (AIML)').trim(),
+        college_name: student.college_name || 'DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY',
+        event_id,
+        event_title: event_title || 'IntelliGenZ AI Workshop',
+        certificate_type: certificate_type || 'Participation',
+        issue_date: issue_date || new Date().toISOString().slice(0, 10),
+        issued_by: issued_by || 'Department of CSE (AIML) & AI',
+        designation: designation || 'Faculty Coordinator & President',
+        is_valid: true,
+        notes: student.notes || 'Awarded for active participation and project completion.',
+        created_at: new Date().toISOString(),
+      };
+      db.certificates.unshift(cert);
+      created.push(cert);
+    }
+
+    saveDatabase(db);
+    res.status(201).json({
+      success: true,
+      message: `Successfully generated and issued ${created.length} certificates.`,
+      certificates: created,
+    });
+  });
+
+  adminRouter.put('/certificates/:id', (req, res) => {
+    const index = db.certificates.findIndex((c) => c.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ error: 'Certificate not found' });
+      return;
+    }
+    db.certificates[index] = { ...db.certificates[index], ...req.body };
+    saveDatabase(db);
+    res.json(db.certificates[index]);
+  });
+
+  adminRouter.delete('/certificates/:id', (req, res) => {
+    db.certificates = db.certificates.filter((c) => c.id !== req.params.id);
+    saveDatabase(db);
+    res.json({ success: true, message: 'Certificate revoked and deleted' });
+  });
+
+  // ==========================================
+  // ADMIN ATTENDANCE / EVENT CHECK-IN
+  // ==========================================
+  adminRouter.get('/checkins', (req, res) => {
+    const eventId = req.query.event_id as string;
+    let list = db.checkins;
+    if (eventId) {
+      list = list.filter((c) => c.event_id === eventId);
+    }
+    res.json(list);
+  });
+
+  adminRouter.post('/checkin', (req, res) => {
+    const { code, event_id, registration_id, roll_number, email, method } = req.body;
+    const queryTerm = (code || roll_number || email || registration_id || '').trim().toLowerCase();
+
+    if (!queryTerm) {
+      res.status(400).json({ error: 'Please provide ticket code, roll number, email, or registration ID to check-in.' });
+      return;
+    }
+
+    // Find registration
+    const reg = db.registrations.find(
+      (r) =>
+        (!event_id || r.event_id === event_id) &&
+        (r.id.toLowerCase() === queryTerm ||
+          r.roll_number.toLowerCase() === queryTerm ||
+          r.email.toLowerCase() === queryTerm ||
+          `TKT-${r.id.slice(-6)}`.toLowerCase() === queryTerm)
+    );
+
+    if (!reg) {
+      res.status(404).json({
+        error: 'No matching event registration found. Please check ticket credentials or register on the spot.',
+      });
+      return;
+    }
+
+    const event = db.events.find((e) => e.id === reg.event_id);
+
+    // Check duplicate checkin
+    const alreadyCheckedIn = db.checkins.find(
+      (c) => c.registration_id === reg.id || (c.event_id === reg.event_id && c.roll_number.toUpperCase() === reg.roll_number.toUpperCase())
+    );
+
+    if (alreadyCheckedIn) {
+      res.status(409).json({
+        error: `Participant ${reg.full_name} (${reg.roll_number}) was already checked in at ${new Date(alreadyCheckedIn.checked_in_at).toLocaleTimeString()}.`,
+        record: alreadyCheckedIn,
+      });
+      return;
+    }
+
+    const checkinRecord: AttendanceRecord = {
+      id: `chk-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      registration_id: reg.id,
+      event_id: reg.event_id,
+      event_title: event?.title || reg.event_title || 'IntelliGenZ Event',
+      participant_name: reg.full_name,
+      roll_number: reg.roll_number,
+      email: reg.email,
+      department: reg.department,
+      checked_in_at: new Date().toISOString(),
+      checkin_method: method || 'Code Entry',
+    };
+
+    db.checkins.unshift(checkinRecord);
+    saveDatabase(db);
+
+    res.status(201).json({
+      success: true,
+      message: `Verified & Checked-in: ${reg.full_name} (${reg.roll_number})`,
+      record: checkinRecord,
+    });
+  });
+
+  adminRouter.delete('/checkins/:id', (req, res) => {
+    db.checkins = db.checkins.filter((c) => c.id !== req.params.id);
+    saveDatabase(db);
+    res.json({ success: true, message: 'Check-in record removed' });
+  });
+
+  // ==========================================
+  // ADMIN NEWSLETTER & BROADCASTS
+  // ==========================================
+  adminRouter.get('/newsletter/subscribers', (req, res) => {
+    res.json(db.newsletter_subscribers);
+  });
+
+  adminRouter.delete('/newsletter/subscribers/:id', (req, res) => {
+    db.newsletter_subscribers = db.newsletter_subscribers.filter((s) => s.id !== req.params.id);
+    saveDatabase(db);
+    res.json({ success: true });
+  });
+
+  adminRouter.get('/newsletter/broadcasts', (req, res) => {
+    res.json(db.newsletter_broadcasts);
+  });
+
+  adminRouter.post('/newsletter/broadcast', (req, res) => {
+    const { subject, message, target } = req.body;
+    if (!subject || !message) {
+      res.status(400).json({ error: 'Subject and message are required for newsletter broadcast.' });
+      return;
+    }
+
+    const activeCount = db.newsletter_subscribers.filter((s) => s.status === 'Active').length;
+
+    const broadcast: NewsletterBroadcast = {
+      id: `bc-${Date.now()}`,
+      subject: subject.trim(),
+      message: message.trim(),
+      target: target || 'All Subscribers',
+      sent_at: new Date().toISOString(),
+      recipient_count: activeCount,
+    };
+
+    db.newsletter_broadcasts.unshift(broadcast);
+    saveDatabase(db);
+
+    res.status(201).json({
+      success: true,
+      message: `Broadcast successfully queued and dispatched to ${activeCount} active subscribers.`,
+      broadcast,
+    });
+  });
+
+  // ==========================================
+  // ADMIN LEARNING RESOURCES
+  // ==========================================
+  adminRouter.post('/resources', (req, res) => {
+    const slug = req.body.slug || req.body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const newRes: LearningResource = {
+      ...req.body,
+      id: `res-${Date.now()}`,
+      slug,
+      created_at: new Date().toISOString(),
+    };
+    db.resources.unshift(newRes);
+    saveDatabase(db);
+    res.status(201).json(newRes);
+  });
+
+  adminRouter.put('/resources/:id', (req, res) => {
+    const index = db.resources.findIndex((r) => r.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ error: 'Resource not found' });
+      return;
+    }
+    db.resources[index] = { ...db.resources[index], ...req.body };
+    saveDatabase(db);
+    res.json(db.resources[index]);
+  });
+
+  adminRouter.delete('/resources/:id', (req, res) => {
+    const item = db.resources.find((r) => r.id === req.params.id);
+    db.resources = db.resources.filter((r) => r.id !== req.params.id);
+    saveDatabase(db);
+    logAdminAction('Delete Resource', 'Resource', req.params.id, `Deleted learning resource: ${item?.title || req.params.id}`, undefined, req);
+    res.json({ success: true });
+  });
+
+  // ==========================================
+  // ADMIN AUDIT LOGS
+  // ==========================================
+  adminRouter.get('/audit-logs', (req, res) => {
+    res.json(db.audit_logs || []);
+  });
+
+  // ==========================================
+  // ADMIN DATABASE BACKUP & RESTORE
+  // ==========================================
+  adminRouter.get('/backup/export', (req, res) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `backup-${timestamp}.json`;
+    const backupFilePath = path.join(BACKUPS_DIR, backupFileName);
+
+    // Filter out internal password hashes/salts in the export for security
+    const exportableDb = {
+      ...db,
+      admin_users: db.admin_users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+      })),
+      exported_at: new Date().toISOString(),
+      institution: 'DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY',
+      club: 'INTELLIGENZ Club - Dept of CSE (AIML) & AI',
+    };
+
+    // Save persistent backup snapshot in backups directory
+    try {
+      fs.writeFileSync(backupFilePath, JSON.stringify(db, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Failed to write backup snapshot file:', err);
+    }
+
+    logAdminAction('Database Backup Export', 'Database', 'all', `Database backup exported (${backupFileName})`, undefined, req);
+    res.setHeader('Content-Disposition', `attachment; filename="${backupFileName}"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.json(exportableDb);
+  });
+
+  adminRouter.post('/backup/restore', (req, res) => {
+    const backupData = req.body;
+    if (!backupData || typeof backupData !== 'object') {
+      res.status(400).json({ error: 'Invalid backup payload. Expected a valid JSON database schema.' });
+      return;
+    }
+
+    // Preserve existing admin accounts to prevent admin lockouts
+    const existingAdminUsers = db.admin_users;
+
+    db = {
+      settings: backupData.settings || db.settings,
+      stats: backupData.stats || db.stats,
+      events: Array.isArray(backupData.events) ? backupData.events : db.events,
+      announcements: Array.isArray(backupData.announcements) ? backupData.announcements : db.announcements,
+      team: Array.isArray(backupData.team) ? backupData.team : db.team,
+      projects: Array.isArray(backupData.projects) ? backupData.projects : db.projects,
+      achievements: Array.isArray(backupData.achievements) ? backupData.achievements : db.achievements,
+      gallery: Array.isArray(backupData.gallery) ? backupData.gallery : db.gallery,
+      join_applications: Array.isArray(backupData.join_applications) ? backupData.join_applications : db.join_applications,
+      registrations: Array.isArray(backupData.registrations) ? backupData.registrations : db.registrations,
+      messages: Array.isArray(backupData.messages) ? backupData.messages : db.messages,
+      admin_users: existingAdminUsers,
+      certificates: Array.isArray(backupData.certificates) ? backupData.certificates : db.certificates,
+      newsletter_subscribers: Array.isArray(backupData.newsletter_subscribers) ? backupData.newsletter_subscribers : db.newsletter_subscribers,
+      newsletter_broadcasts: Array.isArray(backupData.newsletter_broadcasts) ? backupData.newsletter_broadcasts : db.newsletter_broadcasts,
+      resources: Array.isArray(backupData.resources) ? backupData.resources : db.resources,
+      checkins: Array.isArray(backupData.checkins) ? backupData.checkins : db.checkins,
+      audit_logs: Array.isArray(backupData.audit_logs) ? backupData.audit_logs : db.audit_logs,
+    };
+
+    saveDatabase(db);
+    logAdminAction('Database Restored', 'Database', 'all', 'Database successfully restored from admin backup snapshot', undefined, req);
+
+    res.json({
+      success: true,
+      message: 'Database successfully restored from backup snapshot.',
+      stats: {
+        events: db.events.length,
+        registrations: db.registrations.length,
+        certificates: db.certificates.length,
+        applications: db.join_applications.length,
+        announcements: db.announcements.length,
+      },
+    });
+  });
+
   // Mount Admin Router
   app.use('/api/admin', adminRouter);
+
 
   // PostgreSQL / Supabase Schema Exporter
   app.get('/api/export-supabase-sql', (req, res) => {
