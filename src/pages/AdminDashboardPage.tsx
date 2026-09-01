@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { IntelligenzLogo } from '../components/IntelligenzLogo';
 import { api } from '../lib/api';
 import {
   Event,
@@ -518,9 +519,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         {/* Brand */}
         <div className="p-5 border-b border-[#1A1C23]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00E5FF] to-blue-600 flex items-center justify-center text-[#0A0B0E] font-black text-sm shadow-md shadow-[#00E5FF]/20">
-              IZ
-            </div>
+            <IntelligenzLogo size="sm" />
             <div>
               <div className="font-black text-white text-sm font-['Outfit'] tracking-wider">
                 INTELLIGENZ
@@ -590,9 +589,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {/* Mobile Header */}
       <div className="lg:hidden p-4 bg-[#0D1017] border-b border-[#1A1C23] flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#00E5FF] flex items-center justify-center text-[#0A0B0E] font-black text-xs">
-            IZ
-          </div>
+          <IntelligenzLogo size="xs" />
           <span className="text-sm font-black text-white font-['Outfit']">Admin Portal</span>
         </div>
 

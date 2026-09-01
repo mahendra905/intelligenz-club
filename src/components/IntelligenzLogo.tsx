@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface IntelligenzLogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero' | 'watermark';
@@ -13,15 +13,25 @@ export const IntelligenzLogo: React.FC<IntelligenzLogoProps> = ({
   showText = false,
   interactive = false,
 }) => {
+  const uniqueId = useId().replace(/:/g, '');
+
   const sizeMap = {
     xs: 'w-7 h-7',
-    sm: 'w-9 h-9',
-    md: 'w-12 h-12',
-    lg: 'w-16 h-16',
-    xl: 'w-24 h-24',
-    hero: 'w-36 h-36 sm:w-44 sm:h-44 md:w-56 md:h-56',
+    sm: 'w-10 h-10',
+    md: 'w-14 h-14',
+    lg: 'w-20 h-20',
+    xl: 'w-28 h-28',
+    hero: 'w-40 h-40 sm:w-52 sm:h-52 md:w-64 md:h-64',
     watermark: 'w-96 h-96 opacity-5 pointer-events-none select-none',
   };
+
+  const ringGradId = `ringGrad_${uniqueId}`;
+  const innerCoreBgId = `innerCoreBg_${uniqueId}`;
+  const bioBrainGradId = `bioBrainGrad_${uniqueId}`;
+  const techBrainGradId = `techBrainGrad_${uniqueId}`;
+  const centerFlareId = `centerFlare_${uniqueId}`;
+  const topArcPathId = `topArcPath_${uniqueId}`;
+  const bottomArcPathId = `bottomArcPath_${uniqueId}`;
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
@@ -32,199 +42,226 @@ export const IntelligenzLogo: React.FC<IntelligenzLogoProps> = ({
       >
         {/* Ambient Glow */}
         {size !== 'watermark' && (
-          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-tr from-cyan-500/25 via-purple-500/25 to-pink-500/25 blur-md opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-pink-500/20 via-cyan-500/30 to-emerald-400/25 blur-lg opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
         )}
 
-        {/* SVG Emblem */}
+        {/* SVG Official Club Emblem */}
         <svg
-          viewBox="0 0 400 400"
-          className="relative w-full h-full drop-shadow-lg"
+          viewBox="0 0 500 500"
+          className="relative w-full h-full drop-shadow-xl"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            {/* Outer gradient border */}
-            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ec4899" />
-              <stop offset="30%" stopColor="#a855f7" />
-              <stop offset="70%" stopColor="#06b6d4" />
-              <stop offset="100%" stopColor="#10b981" />
+            {/* Outer Multi-color Ring Gradient (Pink -> Purple -> Cyan -> Green) */}
+            <linearGradient id={ringGradId} x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#EC4899" />
+              <stop offset="25%" stopColor="#8B5CF6" />
+              <stop offset="50%" stopColor="#00E5FF" />
+              <stop offset="75%" stopColor="#06B6D4" />
+              <stop offset="100%" stopColor="#10B981" />
             </linearGradient>
 
-            {/* Inner background */}
-            <radialGradient id="badgeBg" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#0f1a30" />
-              <stop offset="75%" stopColor="#070c18" />
-              <stop offset="100%" stopColor="#04070d" />
+            {/* Deep Midnight Navy Background */}
+            <radialGradient id={innerCoreBgId} cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stopColor="#0E1B38" />
+              <stop offset="65%" stopColor="#070C1A" />
+              <stop offset="100%" stopColor="#03050C" />
             </radialGradient>
 
-            {/* Neural Brain Gradient (Left - Bio) */}
-            <linearGradient id="bioBrainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fbbf24" />
-              <stop offset="40%" stopColor="#f97316" />
-              <stop offset="80%" stopColor="#ec4899" />
-              <stop offset="100%" stopColor="#db2777" />
+            {/* Left Brain Bio Neural Gradient (Yellow -> Orange -> Magenta) */}
+            <linearGradient id={bioBrainGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#FBBF24" />
+              <stop offset="35%" stopColor="#F97316" />
+              <stop offset="70%" stopColor="#EC4899" />
+              <stop offset="100%" stopColor="#BE185D" />
             </linearGradient>
 
-            {/* Circuit Brain Gradient (Right - Tech) */}
-            <linearGradient id="techBrainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="45%" stopColor="#06b6d4" />
-              <stop offset="85%" stopColor="#818cf8" />
-              <stop offset="100%" stopColor="#c084fc" />
+            {/* Right Brain Electronic Tech Circuit Gradient (Cyan -> Sky -> Purple) */}
+            <linearGradient id={techBrainGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00E5FF" />
+              <stop offset="40%" stopColor="#38BDF8" />
+              <stop offset="75%" stopColor="#818CF8" />
+              <stop offset="100%" stopColor="#C084FC" />
             </linearGradient>
 
-            {/* Center Beam */}
-            <linearGradient id="beamGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0" />
-              <stop offset="50%" stopColor="#fbbf24" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+            {/* Central Amber / Gold Light Flare Beam */}
+            <linearGradient id={centerFlareId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#F59E0B" stopOpacity="0" />
+              <stop offset="50%" stopColor="#FBBF24" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
             </linearGradient>
 
-            {/* Text paths */}
-            <path id="topTextArc" d="M 55,200 A 145,145 0 0,1 345,200" fill="none" />
-            <path id="bottomTextArc" d="M 335,225 A 145,145 0 0,1 65,225" fill="none" />
+            {/* Circular Text Arcs */}
+            <path id={topArcPathId} d="M 68,250 A 182,182 0 0,1 432,250" fill="none" />
+            <path id={bottomArcPathId} d="M 432,252 A 182,182 0 0,1 68,252" fill="none" />
           </defs>
 
-          {/* Outer Multi-color Ring */}
-          <circle cx="200" cy="200" r="190" fill="none" stroke="url(#ringGrad)" strokeWidth="12" />
-          <circle cx="200" cy="200" r="182" fill="none" stroke="#060913" strokeWidth="3" />
+          {/* Outer Multi-color Glowing Gradient Rim */}
+          <circle cx="250" cy="250" r="242" fill="none" stroke={`url(#${ringGradId})`} strokeWidth="15" />
 
-          {/* Main Dark Body */}
-          <circle cx="200" cy="200" r="180" fill="url(#badgeBg)" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
+          {/* White Outer Circular Band */}
+          <circle cx="250" cy="250" r="234.5" fill="#FFFFFF" stroke="#0A0F1D" strokeWidth="2" />
 
-          {/* Top Banner Text: DEPARTMENT OF CSE(AIML) & AI */}
-          <text fill="#ffffff" fontSize="15" fontWeight="800" letterSpacing="2.5" fontFamily="'Outfit', sans-serif">
-            <textPath href="#topTextArc" startOffset="50%" textAnchor="middle">
-              • DEPARTMENT OF CSE(AIML) & AI •
+          {/* Top Curved Text: DEPARTMENT OF CSE(AIML) & AI */}
+          <text fill="#070D1E" fontSize="20" fontWeight="900" letterSpacing="3" fontFamily="'Outfit', 'Plus Jakarta Sans', Arial, sans-serif">
+            <textPath href={`#${topArcPathId}`} startOffset="50%" textAnchor="middle">
+              <tspan fill="#00E5FF" fontSize="22">• </tspan>DEPARTMENT OF CSE(AIML) &amp; AI<tspan fill="#00E5FF" fontSize="22"> •</tspan>
             </textPath>
           </text>
 
-          {/* Left computer icon */}
-          <g transform="translate(28, 185) scale(0.65)" opacity="0.85">
-            <rect x="0" y="5" width="28" height="18" rx="2" fill="none" stroke="#38bdf8" strokeWidth="2" />
-            <line x1="-3" y1="23" x2="31" y2="23" stroke="#38bdf8" strokeWidth="2.5" />
-            <text x="14" y="17" fill="#38bdf8" fontSize="8" fontWeight="bold" textAnchor="middle">&lt;/&gt;</text>
+          {/* Bottom Curved Text: CODE • INNOVATE • INTELLIGENTLY */}
+          <text fill="#070D1E" fontSize="17" fontWeight="900" letterSpacing="3.5" fontFamily="'Outfit', 'Plus Jakarta Sans', Arial, sans-serif">
+            <textPath href={`#${bottomArcPathId}`} startOffset="50%" textAnchor="middle">
+              <tspan fill="#00E5FF" fontSize="20">• </tspan>CODE<tspan fill="#00E5FF" fontSize="20"> • </tspan>INNOVATE<tspan fill="#00E5FF" fontSize="20"> • </tspan>INTELLIGENTLY<tspan fill="#00E5FF" fontSize="20"> •</tspan>
+            </textPath>
+          </text>
+
+          {/* Inner Deep Midnight Blue Center Body */}
+          <circle cx="250" cy="250" r="172" fill={`url(#${innerCoreBgId})`} stroke="#070D1E" strokeWidth="3" />
+
+          {/* Inner Subtle Cyan Guideline Accent Ring */}
+          <circle cx="250" cy="250" r="169" fill="none" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3,3" />
+
+          {/* LEFT FLANKING ICON: Laptop with Code </> */}
+          <g transform="translate(92, 232) scale(0.85)" opacity="0.95">
+            <rect x="0" y="0" width="36" height="24" rx="3" fill="#0A1124" stroke="#00E5FF" strokeWidth="2.5" />
+            <text x="18" y="16" fill="#00E5FF" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="'JetBrains Mono', monospace">&lt;/&gt;</text>
+            <path d="M -6,24 L 42,24 L 38,28 L -2,28 Z" fill="#00E5FF" />
           </g>
 
-          {/* Right AI head icon */}
-          <g transform="translate(335, 182) scale(0.7)" opacity="0.85">
-            <path d="M 12,5 C 20,5 24,11 24,18 C 24,24 20,28 17,30 L 17,36 L 6,36 L 6,30 C 2,27 0,22 0,16 C 0,10 5,5 12,5 Z" fill="none" stroke="#c084fc" strokeWidth="2" />
-            <circle cx="9" cy="15" r="2" fill="#ec4899" />
-            <circle cx="17" cy="13" r="2" fill="#38bdf8" />
-            <circle cx="13" cy="21" r="2" fill="#10b981" />
-            <line x1="9" y1="15" x2="17" y2="13" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
-            <line x1="9" y1="15" x2="13" y2="21" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
-            <line x1="17" y1="13" x2="13" y2="21" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
+          {/* RIGHT FLANKING ICON: Head Profile with Connected Neural Network */}
+          <g transform="translate(372, 226) scale(0.85)" opacity="0.95">
+            <path d="M 18,0 C 30,0 36,9 36,20 C 36,29 30,34 26,38 L 26,46 L 10,46 L 10,38 C 4,34 0,27 0,19 C 0,8 8,0 18,0 Z" fill="none" stroke="#00E5FF" strokeWidth="2.5" strokeLinejoin="round" />
+            <circle cx="14" cy="18" r="3" fill="#F43F5E" />
+            <circle cx="24" cy="14" r="3" fill="#00E5FF" />
+            <circle cx="19" cy="27" r="3" fill="#10B981" />
+            <circle cx="26" cy="24" r="2.5" fill="#A855F7" />
+            <line x1="14" y1="18" x2="24" y2="14" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.8" />
+            <line x1="14" y1="18" x2="19" y2="27" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.8" />
+            <line x1="24" y1="14" x2="26" y2="24" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.8" />
+            <line x1="19" y1="27" x2="26" y2="24" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.8" />
           </g>
 
-          {/* Inner Badge Separator Line */}
-          <circle cx="200" cy="200" r="148" fill="none" stroke="rgba(56, 189, 248, 0.18)" strokeWidth="1" strokeDasharray="3,3" />
+          {/* CENTER SPLIT BRAIN GRAPHIC & CODE SYMBOL */}
+          <g transform="translate(0, -16)">
+            {/* Center Amber Flare Seam */}
+            <rect x="248" y="90" width="4" height="175" fill={`url(#${centerFlareId})`} />
+            <circle cx="250" cy="175" r="24" fill="#F59E0B" opacity="0.3" filter="blur(10px)" />
 
-          {/* CENTER BRAIN GRAPHIC */}
-          <g transform="translate(0, -10)">
-            {/* Center Vertical Light Beam */}
-            <rect x="198" y="70" width="4" height="140" fill="url(#beamGrad)" />
-            <circle cx="200" cy="140" r="18" fill="#f59e0b" opacity="0.25" filter="blur(8px)" />
-
-            {/* Left Brain - Bio Neural Organic Nodes */}
-            <g stroke="url(#bioBrainGrad)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M 190,82 C 165,75 140,88 135,108 C 122,112 118,128 123,142 C 115,152 118,168 130,178 C 138,188 152,192 165,190 C 176,188 185,195 190,198" />
-              <path d="M 155,108 C 168,118 178,110 188,114" />
-              <path d="M 140,135 C 152,130 162,142 175,138" />
-              <path d="M 148,160 C 160,155 170,165 186,160" />
-              <circle cx="155" cy="108" r="3.5" fill="#f97316" />
-              <circle cx="188" cy="114" r="3" fill="#fbbf24" />
-              <circle cx="140" cy="135" r="3.5" fill="#ec4899" />
-              <circle cx="175" cy="138" r="3" fill="#f97316" />
-              <circle cx="148" cy="160" r="3.5" fill="#ec4899" />
-              <circle cx="186" cy="160" r="3" fill="#f97316" />
+            {/* Left Brain - Bio Neural Organic Convolutions */}
+            <g stroke={`url(#${bioBrainGradId})`} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M 238,105 C 205,98 175,114 168,140 C 152,146 148,166 154,184 C 144,196 148,216 163,228 C 173,240 190,245 206,243 C 220,240 231,248 238,252" />
+              <path d="M 192,140 C 208,152 221,142 234,148" />
+              <path d="M 174,174 C 190,168 202,182 218,178" />
+              <path d="M 184,206 C 198,200 211,212 231,207" />
+              <path d="M 198,228 C 210,224 220,232 235,229" />
+              <circle cx="192" cy="140" r="4.5" fill="#F97316" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="234" cy="148" r="4" fill="#FBBF24" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="174" cy="174" r="4.5" fill="#EC4899" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="218" cy="178" r="4" fill="#F97316" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="184" cy="206" r="4.5" fill="#EC4899" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="231" cy="207" r="4" fill="#F97316" stroke="#040711" strokeWidth="1.5" />
             </g>
 
-            {/* Right Brain - Electronic Circuit Nodes */}
-            <g stroke="url(#techBrainGrad)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M 210,82 C 235,75 260,88 265,108 C 278,112 282,128 277,142 C 285,152 282,168 270,178 C 262,188 248,192 235,190 C 224,188 215,195 210,198" />
-              <path d="M 212,105 H 240 L 255,115" />
-              <path d="M 212,128 H 230 L 245,128 H 262" />
-              <path d="M 212,150 H 235 L 250,162 H 265" />
-              <path d="M 212,172 H 228 L 240,182" />
-              <circle cx="255" cy="115" r="3.5" fill="#38bdf8" />
-              <circle cx="262" cy="128" r="3.5" fill="#06b6d4" />
-              <circle cx="265" cy="162" r="3.5" fill="#818cf8" />
-              <circle cx="240" cy="182" r="3.5" fill="#c084fc" />
+            {/* Right Brain - Cyber Circuit Traces */}
+            <g stroke={`url(#${techBrainGradId})`} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M 262,105 C 295,98 325,114 332,140 C 348,146 352,166 346,184 C 356,196 352,216 337,228 C 327,240 310,245 294,243 C 280,240 269,248 262,252" />
+              <path d="M 265,136 H 298 L 318,148" />
+              <path d="M 265,165 H 288 L 306,165 H 328" />
+              <path d="M 265,192 H 294 L 312,208 H 332" />
+              <path d="M 265,220 H 285 L 301,232" />
+              <circle cx="318" cy="148" r="4.5" fill="#00E5FF" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="328" cy="165" r="4.5" fill="#38BDF8" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="332" cy="208" r="4.5" fill="#818CF8" stroke="#040711" strokeWidth="1.5" />
+              <circle cx="301" cy="232" r="4.5" fill="#C084FC" stroke="#040711" strokeWidth="1.5" />
             </g>
 
-            {/* Central Code Symbol: </> */}
-            <g transform="translate(178, 116)">
-              <rect x="0" y="2" width="44" height="42" rx="8" fill="#060913" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
-              <text x="22" y="29" fill="#ffffff" fontSize="22" fontWeight="900" textAnchor="middle" fontFamily="'JetBrains Mono', monospace">&lt;/&gt;</text>
+            {/* Central Code Badge: </> */}
+            <g transform="translate(222, 146)">
+              <rect x="0" y="2" width="56" height="54" rx="10" fill="#060A16" stroke="#FFFFFF" strokeWidth="2" strokeOpacity="0.8" />
+              <text x="28" y="38" fill="#FFFFFF" fontSize="28" fontWeight="900" textAnchor="middle" fontFamily="'JetBrains Mono', monospace">&lt;/&gt;</text>
             </g>
           </g>
 
           {/* MAIN BRAND TEXT: IntelliGenZ */}
           <text
-            x="200"
-            y="248"
-            fill="#ffffff"
-            fontSize="36"
+            x="250"
+            y="308"
+            fill="#FFFFFF"
+            fontSize="46"
             fontWeight="900"
             textAnchor="middle"
-            fontFamily="'Outfit', sans-serif"
-            letterSpacing="0.5"
+            fontFamily="'Outfit', 'Plus Jakarta Sans', Arial, sans-serif"
+            letterSpacing="1"
           >
             IntelliGenZ
           </text>
 
-          {/* SCRIPT TEXT: Club with underline */}
+          {/* CALLIGRAPHY SCRIPT TEXT: Club with Orange Swoosh */}
           <text
-            x="200"
-            y="282"
-            fill="#f8fafc"
-            fontSize="32"
-            fontWeight="600"
+            x="250"
+            y="350"
+            fill="#FFFFFF"
+            fontSize="40"
+            fontWeight="700"
             textAnchor="middle"
-            fontFamily="'Caveat', cursive"
+            fontFamily="'Caveat', cursive, 'Brush Script MT', sans-serif"
           >
             Club
           </text>
-          {/* Orange Accent Underline under Club */}
+
+          {/* Orange Accent Underline Swoosh */}
           <path
-            d="M 160,288 Q 200,295 240,288"
+            d="M 200,358 Q 250,367 300,358"
             fill="none"
-            stroke="#f59e0b"
-            strokeWidth="3.5"
+            stroke="#F59E0B"
+            strokeWidth="4.5"
             strokeLinecap="round"
           />
 
-          {/* LOWER TECH ICONS CONTAINER */}
-          <g transform="translate(130, 302)">
-            <rect x="0" y="0" width="140" height="28" rx="6" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(56, 189, 248, 0.3)" strokeWidth="1" />
-            {/* AI Microchip */}
-            <g transform="translate(16, 5)">
-              <rect x="0" y="0" width="18" height="18" rx="3" fill="#0369a1" />
-              <text x="9" y="13" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">AI</text>
+          {/* LOWER THREE-ICON TECH STRIP CONTAINER */}
+          <g transform="translate(162, 374)">
+            <rect x="0" y="0" width="176" height="34" rx="8" fill="#0A1124" stroke="#00E5FF" strokeWidth="1.2" strokeOpacity="0.4" />
+            
+            {/* 1. AI Microchip (Left) */}
+            <g transform="translate(20, 6)">
+              <rect x="0" y="0" width="22" height="22" rx="4" fill="#0284C7" stroke="#00E5FF" strokeWidth="1.2" />
+              <text x="11" y="15" fill="#FFFFFF" fontSize="10" fontWeight="900" textAnchor="middle" fontFamily="'Outfit', sans-serif">AI</text>
+              <line x1="5" y1="-3" x2="5" y2="0" stroke="#00E5FF" strokeWidth="1.5" />
+              <line x1="11" y1="-3" x2="11" y2="0" stroke="#00E5FF" strokeWidth="1.5" />
+              <line x1="17" y1="-3" x2="17" y2="0" stroke="#00E5FF" strokeWidth="1.5" />
+              <line x1="5" y1="22" x2="5" y2="25" stroke="#00E5FF" strokeWidth="1.5" />
+              <line x1="11" y1="22" x2="11" y2="25" stroke="#00E5FF" strokeWidth="1.5" />
+              <line x1="17" y1="22" x2="17" y2="25" stroke="#00E5FF" strokeWidth="1.5" />
             </g>
-            <line x1="48" y1="4" x2="48" y2="24" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-            {/* Robotic Arm */}
-            <g transform="translate(56, 5)">
-              <circle cx="5" cy="14" r="3" fill="#f59e0b" />
-              <line x1="5" y1="14" x2="15" y2="7" stroke="#f59e0b" strokeWidth="2.5" />
-              <circle cx="15" cy="7" r="2.5" fill="#f97316" />
-              <line x1="15" y1="7" x2="22" y2="12" stroke="#f59e0b" strokeWidth="2" />
+
+            {/* Divider 1 */}
+            <line x1="60" y1="5" x2="60" y2="29" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.3" />
+
+            {/* 2. Robotic Arm (Center) */}
+            <g transform="translate(72, 6)">
+              <rect x="4" y="18" width="16" height="4" rx="1" fill="#00E5FF" />
+              <circle cx="12" cy="18" r="3" fill="#F59E0B" />
+              <line x1="12" y1="18" x2="20" y2="9" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="20" cy="9" r="3" fill="#F97316" />
+              <line x1="20" y1="9" x2="12" y2="3" stroke="#00E5FF" strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="12" cy="3" r="2.5" fill="#00E5FF" />
             </g>
-            <line x1="90" y1="4" x2="90" y2="24" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-            {/* Cloud Tech */}
-            <g transform="translate(98, 5)">
-              <path d="M 6,14 A 4,4 0 0,1 8,7 A 5,5 0 0,1 18,7 A 4,4 0 0,1 21,14 Z" fill="none" stroke="#38bdf8" strokeWidth="1.8" />
-              <circle cx="13" cy="11" r="1.5" fill="#38bdf8" />
+
+            {/* Divider 2 */}
+            <line x1="116" y1="5" x2="116" y2="29" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.3" />
+
+            {/* 3. Cloud Neural Tech (Right) */}
+            <g transform="translate(126, 6)">
+              <path d="M 7,18 A 5,5 0 0,1 9,9 A 7,7 0 0,1 23,9 A 5,5 0 0,1 25,18 Z" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinejoin="round" />
+              <circle cx="13" cy="14" r="2" fill="#00E5FF" />
+              <circle cx="19" cy="12" r="2" fill="#A855F7" />
+              <circle cx="16" cy="18" r="2" fill="#F43F5E" />
+              <line x1="13" y1="14" x2="19" y2="12" stroke="#00E5FF" strokeWidth="1" />
+              <line x1="13" y1="14" x2="16" y2="18" stroke="#00E5FF" strokeWidth="1" />
+              <line x1="19" y1="12" x2="16" y2="18" stroke="#00E5FF" strokeWidth="1" />
             </g>
           </g>
-
-          {/* Bottom Banner Text: CODE • INNOVATE • INTELLIGENTLY */}
-          <text fill="#ffffff" fontSize="13" fontWeight="800" letterSpacing="3.2" fontFamily="'Outfit', sans-serif">
-            <textPath href="#bottomTextArc" startOffset="50%" textAnchor="middle">
-              CODE • INNOVATE • INTELLIGENTLY
-            </textPath>
-          </text>
         </svg>
       </div>
 

@@ -19,7 +19,6 @@ import {
   Terminal,
   Award,
   BookOpen,
-  Bot,
   Search,
 } from 'lucide-react';
 
@@ -128,27 +127,24 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          {/* Feature 3: IntelliBot AI Mentor */}
+          {/* Feature 3: AI Projects & Innovation */}
           <div
-            onClick={() => {
-              const btn = document.querySelector('button[title="Ask IntelliBot AI Mentor"]') as HTMLButtonElement;
-              if (btn) btn.click();
-            }}
+            onClick={() => onNavigate('/projects')}
             className="p-6 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800 hover:border-purple-500/50 transition-all cursor-pointer group shadow-lg hover:shadow-purple-500/10 flex flex-col justify-between"
           >
             <div>
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
-                <Bot className="w-5 h-5" />
+                <Code2 className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-white group-hover:text-purple-400 transition-colors font-['Outfit']">
-                IntelliBot AI Mentor
+                AI Projects &amp; Research
               </h3>
               <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                Powered by Gemini. Ask questions about club hackathons, upcoming workshops, or get AI code assistance.
+                Explore student-built neural networks, autonomous robotics, computer vision pipelines, and production systems.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-purple-400 font-semibold uppercase tracking-wider">
-              <span>Start Conversation</span>
+              <span>View Projects</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

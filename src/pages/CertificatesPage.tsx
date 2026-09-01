@@ -18,6 +18,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { IntelligenzLogo } from '../components/IntelligenzLogo';
 import { Certificate } from '../types';
 
 interface CertificatesPageProps {
@@ -92,7 +93,10 @@ export function CertificatesPage({ onNavigate }: CertificatesPageProps) {
         <div className="hidden print:block fixed inset-0 bg-white text-slate-900 p-8 z-[9999]">
           <div className="border-8 border-double border-amber-600/60 p-8 h-full flex flex-col justify-between items-center text-center relative bg-gradient-to-b from-amber-50/20 to-white">
             {/* Header */}
-            <div>
+            <div className="flex flex-col items-center">
+              <div className="mb-2">
+                <IntelligenzLogo size="md" />
+              </div>
               <div className="text-xs uppercase tracking-widest text-slate-600 font-semibold mb-1">
                 DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY (DRKVSRIT)
               </div>
@@ -278,7 +282,10 @@ export function CertificatesPage({ onNavigate }: CertificatesPageProps) {
               <div className="absolute bottom-3 right-3 text-amber-400/40 text-xs font-mono">✦</div>
 
               <div className="text-center space-y-6">
-                <div>
+                <div className="flex flex-col items-center">
+                  <div className="mb-2">
+                    <IntelligenzLogo size="sm" />
+                  </div>
                   <div className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold">
                     DR. K. V. SUBBA REDDY INSTITUTE OF TECHNOLOGY
                   </div>

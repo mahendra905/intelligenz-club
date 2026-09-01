@@ -874,20 +874,6 @@ export const api = {
   },
 
   // ==========================================
-  // GEMINI AI ASSISTANT (Public)
-  // ==========================================
-  sendAIChat: async (message: string): Promise<{ reply: string }> => {
-    const res = await fetch('/api/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || 'Failed to communicate with AI Assistant');
-    return result;
-  },
-
-  // ==========================================
   // AUDIT LOGS & DATABASE BACKUPS (Admin)
   // ==========================================
   adminGetAuditLogs: async (): Promise<AuditLog[]> => {
